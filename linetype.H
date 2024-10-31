@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream> 
 #include <iomanip>  
+
 class lineType {
 private:
     double a, b, c; // Coefficients of the line equation Ax + By + C = 0
@@ -18,8 +19,11 @@ public:
     double getA() const;
     double getB() const;
     double getC() const;
+
+    // Bools to check if its Parallel or Perpendicular
     bool isParallel(const lineType& other) const;
     bool isPerpendicular(const lineType& other) const;
+
     // Function prototypes for additional functionality
     void checkLines(const lineType& line1, const lineType& line2);
     void findIntersection(const lineType& line1, const lineType& line2);
@@ -28,6 +32,7 @@ public:
     void checkQuadrilateral(const std::vector<lineType>& lines);
 
 };
+
 void compareLinesMenu(const std::vector<std::vector<lineType>>& allLines);
 void showShapesMenu(const std::vector<std::vector<lineType>>& allLines);
 void findIntersection(const lineType& line1, const lineType& line2);
