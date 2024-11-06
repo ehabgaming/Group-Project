@@ -1,10 +1,12 @@
-#include <iostream>
-#include <iomanip>
+#include "linetype.h"
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include <limits>
-#include "linetype.h"
 
+// Forward declarations
+void compareCustomLinesMenu();
+void createCustomShapeMenu();
 
 int main() {
     std::ifstream inputFile("linesData.txt");
@@ -15,12 +17,10 @@ int main() {
 
     std::vector<std::vector<lineType>> allLines;
     double a, b, c;
-
-    // Read lines from the file and store them in a vector of vectors
     while (inputFile >> a >> b >> c) {
         std::vector<lineType> lines;
         lines.push_back(lineType(a, b, c));
-        for (int i = 1; i < 4; ++i) { // Read the next three lines
+        for (int i = 1; i < 4; ++i) {
             if (inputFile >> a >> b >> c) {
                 lines.push_back(lineType(a, b, c));
             }
@@ -31,17 +31,18 @@ int main() {
         }
         allLines.push_back(lines);
     }
-    inputFile.close(); // Close the file
+    inputFile.close();
 
-    // Main menu loop
     while (true) {
-        std::cout << "\n--- Main Menu ---" << std::endl;
-        std::cout << "1. Compare Lines" << std::endl;
-        std::cout << "2. Show Shapes" << std::endl;
-        std::cout << "3. Exit" << std::endl;
-        std::cout << "Choose an option: ";
-        int option;
-        std::cin >> option;
+        displayHeader("Main Menu");
+        std::cout << "1. Compare Lines from File" << std::endl;
+        std::cout << "2. Show Shapes from File" << std::endl;
+        std::cout << "3. Compare Custom Lines" << std::endl;
+        std::cout << "4. Create and Analyze Custom Shape" << std::endl;
+        std::cout << "5. Exit" << std::endl;
+        std::cout << "\nChoose an option: ";
+
+        int option = getValidIntegerInput();
 
         switch (option) {
         case 1:
@@ -51,13 +52,20 @@ int main() {
             showShapesMenu(allLines);
             break;
         case 3:
-            std::cout << "Exiting the program." << std::endl;
-            return 0; // Exit the program
+            compareCustomLinesMenu();
+            break;
+        case 4:
+            createCustomShapeMenu();
+            break;
+        case 5:
+            clearScreen();
+            std::cout << "Thank you for using the program!" << std::endl;
+            return 0;
         default:
             std::cout << "Invalid option. Please choose again." << std::endl;
+            pauseScreen();
             break;
         }
     }
-
-    return 0; // Main should return an integer value
+    return 0;
 }
