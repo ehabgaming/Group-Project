@@ -7,6 +7,7 @@ extern "C++" {
 
 #include <vector>
 #include <string>
+#include <iostream>
 
     struct Point {
         double x, y;
@@ -32,9 +33,12 @@ extern "C++" {
         bool isParallel(const lineType& other) const;
         bool isPerpendicular(const lineType& other) const;
         Point findIntersectionPoint(const lineType& other) const;
+
+        
     };
 
     // Function declarations
+    void Display(const std::vector<std::vector<lineType>>& allLines);
     void clearScreen();
     void pauseScreen();
     void displayHeader(const std::string& title);
