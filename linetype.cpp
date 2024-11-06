@@ -18,6 +18,7 @@ void compareCustomLinesMenu();
 void createCustomShapeMenu();
 lineType getLineFromUser(const std::string& lineNumber);
 
+
 int getValidIntegerInput() {
     int input;
     string line;
@@ -32,6 +33,9 @@ int getValidIntegerInput() {
         cout << "Invalid input. Please enter a number: ";
     }
 }
+
+
+
 
 void clearScreen() {
 #ifdef _WIN32
@@ -66,6 +70,20 @@ double lineType::getSlope() const {
     }
     return -a / b;
 }
+
+void Display(const std::vector<std::vector<lineType>>& allLines) // Displays all lines in sets
+{
+    for (size_t i = 0; i < allLines.size(); i++)
+    {
+        cout <<"Line Set " << i + 1 << endl << "_______________________\n";
+        for (size_t j = 0; j < allLines[i].size(); j++)
+        {
+            cout << allLines[i][j].getA() << "x + " << allLines[i][j].getB() << "y = " << allLines[i][j].getC() << endl;
+        }
+        cout << endl;
+    }
+}
+
 
 bool lineType::isParallel(const lineType& other) const {
     if (abs(b) < EPSILON && abs(other.b) < EPSILON) {
@@ -192,7 +210,8 @@ void showShape(const vector<lineType>& lines) {
 void compareLinesMenu(const vector<vector<lineType>>& allLines) {
     while (true) {
         displayHeader("Compare Lines");
-
+        
+        Display(allLines);
         int setChoice;
         do {
             cout << "Choose a set of lines (1-" << allLines.size() << "): ";
@@ -250,6 +269,7 @@ void compareLinesMenu(const vector<vector<lineType>>& allLines) {
 void showShapesMenu(const vector<vector<lineType>>& allLines) {
     while (true) {
         displayHeader("Shape Analysis");
+        Display(allLines);
 
         int setNumber;
         do {
@@ -511,3 +531,4 @@ void checkQuadrilateral(const vector<lineType>& lines) {
     else if (isTrapezoid) cout << "The shape you have chosen is a trapezoid! (there is only one pair of parallel sides)" << endl;
     else cout << "Looks like the shape you have chosen, is an irregular quadrilateral!" << endl;
 }
+
