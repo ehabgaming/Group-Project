@@ -1,65 +1,104 @@
 #include "linetype.h"
 #include <limits>
-#include <cmath> // For std::abs
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <sstream>
+#include <string>
 
-// Constructor to initialize the line coefficients
+using namespace std;
+
+const double EPSILON = 1e-9;
+
+// Forward declarations for new functions
+void compareCustomLinesMenu();
+void createCustomShapeMenu();
+lineType getLineFromUser(const std::string& lineNumber);
+
+int getValidIntegerInput() {
+    int input;
+    string line;
+
+    while (true) {
+        if (getline(cin, line)) {
+            stringstream ss(line);
+            if (ss >> input && !(ss >> line)) {  // Check if we got exactly one integer
+                return input;
+            }
+        }
+        cout << "Invalid input. Please enter a number: ";
+    }
+}
+
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+void pauseScreen() {
+    cout << "\nPress Enter to continue...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
+}
+
+void displayHeader(const string& title) {
+    clearScreen();
+    cout << "==================================" << endl;
+    cout << "          " << title << endl;
+    cout << "==================================" << endl << endl;
+}
+
 lineType::lineType(double a, double b, double c) : a(a), b(b), c(c) {}
 
-// Getter methods for line coefficients
 double lineType::getA() const { return a; }
 double lineType::getB() const { return b; }
 double lineType::getC() const { return c; }
 
-// Method to calculate the slope of the line
 double lineType::getSlope() const {
-    if (b != 0) {
-        return -a / b; // Slope calculation
+    if (abs(b) < EPSILON) {
+        return numeric_limits<double>::infinity();
     }
-    else {
-        return std::numeric_limits<double>::infinity(); // Vertical line
-    }
+    return -a / b;
 }
 
-// Method to check if this line is parallel to another line
 bool lineType::isParallel(const lineType& other) const {
-    // Check if both lines are vertical
-    if (this->b == 0 && other.b == 0) {
-        return true; // Both lines are vertical
+    if (abs(b) < EPSILON && abs(other.b) < EPSILON) {
+        return true;
     }
-
-    // Compare slopes, allowing for some precision error if needed
-    return std::abs(this->getSlope() - other.getSlope()) < 1e-9; // Use a small epsilon value
+    return abs(getSlope() - other.getSlope()) < EPSILON;
 }
 
-// Method to check if this line is perpendicular to another line
 bool lineType::isPerpendicular(const lineType& other) const {
-    const double slope1 = this->getSlope();
+    const double slope1 = getSlope();
     const double slope2 = other.getSlope();
 
-    // Check for perpendicular lines
-    return (slope1 * slope2 == -1) ||
-        (std::isinf(slope1) && slope2 == 0) ||
-        (std::isinf(slope2) && slope1 == 0);
+    if (isinf(slope1) && abs(slope2) < EPSILON) return true;
+    if (isinf(slope2) && abs(slope1) < EPSILON) return true;
+    if (isinf(slope1) || isinf(slope2)) return false;
+
+    return abs(slope1 * slope2 + 1) < EPSILON;
 }
 
-// Function to check if two lines are parallel or perpendicular
 void checkLines(const lineType& line1, const lineType& line2) {
     if (line1.isParallel(line2)) {
-        std::cout << "The lines are parallel." << std::endl;
+        cout << "The lines are parallel." << endl;
     }
     else if (line1.isPerpendicular(line2)) {
-        std::cout << "The lines are perpendicular." << std::endl;
-        // Calculate and display the intersection point
+        cout << "The lines are perpendicular." << endl;
         findIntersection(line1, line2);
     }
     else {
-        std::cout << "The lines are neither parallel nor perpendicular." << std::endl;
-        // Calculate and display the intersection point
+        cout << "The lines are neither parallel nor perpendicular." << endl;
         findIntersection(line1, line2);
     }
 }
 
-// Function to find the intersection point of two lines
 void findIntersection(const lineType& line1, const lineType& line2) {
     double a1 = line1.getA();
     double b1 = line1.getB();
@@ -71,146 +110,404 @@ void findIntersection(const lineType& line1, const lineType& line2) {
 
     double determinant = a1 * b2 - a2 * b1;
 
-    if (determinant == 0) {
-        std::cout << "The lines are parallel and do not intersect." << std::endl;
+    if (abs(determinant) < EPSILON) {
+        cout << "The lines are parallel and don't cross." << endl;
     }
     else {
-        double x = (b1 * c2 - b2 * c1) / determinant;
-        double y = (a2 * c1 - a1 * c2) / determinant;
-
-        std::cout << "The lines intersect at point: (" << std::fixed << std::setprecision(2) << x << ", " << y << ")" << std::endl;
+        double x = (-(b1 * c2 - b2 * c1)) / determinant;
+        double y = (-(a2 * c1 - a1 * c2)) / determinant;
+        cout << "The lines intersect at point: (" << fixed << setprecision(3)
+            << x << ", " << y << ")" << endl;
     }
 }
 
-// Function for comparing lines from a chosen set
-void compareLinesMenu(const std::vector<std::vector<lineType>>& allLines) {
-    while (true) {
-        std::cout << "\nChoose a set of lines (1-" << allLines.size() << "): ";
-        int setChoice;
-        std::cin >> setChoice;
-
-        if (setChoice < 1 || setChoice > allLines.size()) {
-            std::cout << "Invalid set number." << std::endl;
-            continue;
-        }
-
-        std::cout << "Choose two lines to compare (1-4): ";
-        int line1, line2;
-        std::cin >> line1 >> line2;
-
-        if (line1 < 1 || line1 > 4 || line2 < 1 || line2 > 4 || line1 == line2) {
-            std::cout << "Invalid line choice." << std::endl;
-            continue;
-        }
-
-        checkLines(allLines[setChoice - 1][line1 - 1], allLines[setChoice - 1][line2 - 1]);
-
-        // Options after showing results
-        std::cout << "\nWould you like to:" << std::endl;
-        std::cout << "1. Compare more lines" << std::endl;
-        std::cout << "2. Go back to the main menu" << std::endl;
-        std::cout << "3. Exit" << std::endl;
-
-        int option;
-        std::cin >> option;
-
-        if (option == 2) break; // Go back to main menu
-        else if (option == 3) exit(0); // Exit
+Point lineType::findIntersectionPoint(const lineType& other) const {
+    double det = a * other.b - other.a * b;
+    if (abs(det) < EPSILON) {
+        return Point(numeric_limits<double>::infinity(),
+            numeric_limits<double>::infinity());
     }
+
+    double x = (b * other.c - other.b * c) / det;
+    double y = (other.a * c - a * other.c) / det;
+    return Point(x, y);
 }
 
-// Function to show the shape formed by the lines
-void showShape(const std::vector<lineType>& lines) {
-    std::cout << "Shape formed by the lines:" << std::endl;
-    checkQuadrilateral(lines);
+double calculateDistance(const Point& p1, const Point& p2) {
+    return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
 }
 
-// Function to show shapes based on user's choice
-void showShapesMenu(const std::vector<std::vector<lineType>>& allLines) {
-    while (true) {
-        std::cout << "\nChoose a set to show the shape (1-" << allLines.size() << "): ";
-        int setNumber;
-        std::cin >> setNumber;
-
-        if (setNumber < 1 || setNumber > allLines.size()) {
-            std::cout << "Invalid set number." << std::endl;
-            continue;
-        }
-
-        showShape(allLines[setNumber - 1]);
-
-        // Options after showing results
-        std::cout << "\nWould you like to:" << std::endl;
-        std::cout << "1. Show the shape of another set" << std::endl;
-        std::cout << "2. Go back to the main menu" << std::endl;
-        std::cout << "3. Exit" << std::endl;
-
-        int option;
-        std::cin >> option;
-
-        if (option == 2) break; // Go back to main menu
-        else if (option == 3) exit(0); // Exit
-    }
-}
-
-// Function to check the properties of the quadrilateral formed by the lines
-void checkQuadrilateral(const std::vector<lineType>& lines) {
+void showShape(const vector<lineType>& lines) {
     if (lines.size() != 4) {
-        std::cout << "Error: A quadrilateral requires exactly 4 lines." << std::endl;
+        cout << "Error: Need exactly 4 lines to analyze a shape!" << endl;
         return;
     }
 
-    double slope1 = lines[0].getSlope();
-    double slope2 = lines[1].getSlope();
-    double slope3 = lines[2].getSlope();
-    double slope4 = lines[3].getSlope();
-    bool equalLengths = true;
-    bool length1Equals4 = true; // Assume Line 1 and Line 4 are of equal length
-    bool length2Equals3 = true; // Assume Line 2 and Line 3 are of equal length
-    // Check for parallelogram (opposite slopes must be equal)
-    bool isParallelogram = (slope1 == slope4) && (slope2 == slope3);
+    cout << "Analyzing the shape formed by these 4 lines..." << endl;
 
-    // Check for rectangle (opposite slopes equal and adjacent slopes are perpendicular)
-    bool isRectangle =lines[0].isPerpendicular(lines[1]) &&
-        lines[0].isPerpendicular(lines[2]) &&
-        lines[0].isParallel(lines[3]) &&
-        lines[3].isPerpendicular(lines[1]) &&
-        lines[3].isPerpendicular(lines[2]) &&
-        lines[3].isParallel(lines[0]);
+    cout << "\nInformation about the lines:" << endl;
+    cout << "----------------" << endl;
+    for (size_t i = 0; i < lines.size(); i++) {
+        cout << "Line " << (i + 1) << ": ";
+        if (abs(lines[i].getB()) < EPSILON) {
+            cout << "Vertical line";
+        }
+        else {
+            cout << "Slope = " << fixed << setprecision(3) << lines[i].getSlope();
+        }
+        cout << endl;
+    }
 
-    // Check for rhombus (all sides are equal)
-    bool isRhombus = equalLengths &&
-        lines[0].isParallel(lines[3]) &&
-        lines[3].isParallel(lines[0]);
+    cout << "\nParallel Lines:" << endl;
+    cout << "--------------" << endl;
+    bool hasParallel = false;
+    for (size_t i = 0; i < lines.size(); i++) {
+        for (size_t j = i + 1; j < lines.size(); j++) {
+            if (lines[i].isParallel(lines[j])) {
+                cout << "Lines " << (i + 1) << " and " << (j + 1) << " are parallel" << endl;
+                hasParallel = true;
+            }
+        }
+    }
+    if (!hasParallel) cout << "No parallel lines found." << endl;
 
-    // Check for square (must satisfy both rectangle and rhombus conditions)
-    bool isSquare = equalLengths &&
-        lines[0].isPerpendicular(lines[1]) &&
-        lines[0].isPerpendicular(lines[2]) &&
-        lines[0].isParallel(lines[3]) &&
-        lines[3].isPerpendicular(lines[1]) &&
-        lines[3].isPerpendicular(lines[2]) &&
-        lines[3].isParallel(lines[0]);
-    // Check for trapezoid (at least one pair of opposite sides parallel)
-    bool isTrapezoid = (std::abs(slope1) == std::abs(slope4) && slope1 * slope4 < 0) &&
-        (slope2 == slope3); 
-    // Display the type of quadrilateral
-    if (isSquare) {
-        std::cout << "It is a square." << std::endl;
+    cout << "\nPerpendicular Lines:" << endl;
+    cout << "------------------" << endl;
+    bool hasPerpendicular = false;
+    for (size_t i = 0; i < lines.size(); i++) {
+        for (size_t j = i + 1; j < lines.size(); j++) {
+            if (lines[i].isPerpendicular(lines[j])) {
+                cout << "Lines " << (i + 1) << " and " << (j + 1) << " are perpendicular" << endl;
+                hasPerpendicular = true;
+            }
+        }
     }
-    else if (isRectangle) {
-        std::cout << "It is a rectangle." << std::endl;
+    if (!hasPerpendicular) cout << "No perpendicular lines found." << endl;
+
+    cout << "\nShape Analysis:" << endl;
+    cout << "--------------" << endl;
+    checkQuadrilateral(lines);
+}
+
+void compareLinesMenu(const vector<vector<lineType>>& allLines) {
+    while (true) {
+        displayHeader("Compare Lines");
+
+        int setChoice;
+        do {
+            cout << "Choose a set of lines (1-" << allLines.size() << "): ";
+            setChoice = getValidIntegerInput();
+            if (setChoice < 1 || setChoice > static_cast<int>(allLines.size())) {
+                cout << "Invalid set number! Please choose between 1 and " << allLines.size() << endl;
+            }
+        } while (setChoice < 1 || setChoice > static_cast<int>(allLines.size()));
+
+        int line1, line2;
+        do {
+            cout << "Choose first line to compare (1-4): ";
+            line1 = getValidIntegerInput();
+            if (line1 < 1 || line1 > 4) {
+                cout << "Invalid line number! Please choose between 1 and 4" << endl;
+            }
+        } while (line1 < 1 || line1 > 4);
+
+        do {
+            cout << "Choose second line to compare (1-4): ";
+            line2 = getValidIntegerInput();
+            if (line2 < 1 || line2 > 4 || line2 == line1) {
+                cout << "Invalid line number! Please choose a different line between 1 and 4" << endl;
+            }
+        } while (line2 < 1 || line2 > 4 || line2 == line1);
+
+        displayHeader("Line Comparison Results");
+        checkLines(allLines[setChoice - 1][line1 - 1], allLines[setChoice - 1][line2 - 1]);
+
+        cout << "\nWhat would you like to do?" << endl;
+        cout << "1. Compare more lines" << endl;
+        cout << "2. Return to main menu" << endl;
+        cout << "3. Exit program" << endl;
+        cout << "\nChoice: ";
+
+        int option;
+        do {
+            option = getValidIntegerInput();
+            if (option < 1 || option > 3) {
+                cout << "Invalid choice! Please choose between 1 and 3: ";
+            }
+        } while (option < 1 || option > 3);
+
+        if (option == 2) {
+            clearScreen();
+            break;
+        }
+        else if (option == 3) {
+            cout << "Thank you for using our program!" << endl;
+            exit(0);
+        }
     }
-    else if (isRhombus) {
-        std::cout << "It is a rhombus." << std::endl;
+}
+
+void showShapesMenu(const vector<vector<lineType>>& allLines) {
+    while (true) {
+        displayHeader("Shape Analysis");
+
+        int setNumber;
+        do {
+            cout << "Choose a set of lines (1-" << allLines.size() << "): ";
+            setNumber = getValidIntegerInput();
+            if (setNumber < 1 || setNumber > static_cast<int>(allLines.size())) {
+                cout << "Invalid set number! Please choose between 1 and " << allLines.size() << endl;
+            }
+        } while (setNumber < 1 || setNumber > static_cast<int>(allLines.size()));
+
+        displayHeader("Shape Analysis Results");
+        showShape(allLines[setNumber - 1]);
+
+        cout << "\nWhat would you like to do?" << endl;
+        cout << "1. Analyze another shape" << endl;
+        cout << "2. Return to main menu" << endl;
+        cout << "3. Exit program" << endl;
+        cout << "\nChoice: ";
+
+        int option;
+        do {
+            option = getValidIntegerInput();
+            if (option < 1 || option > 3) {
+                cout << "Invalid choice! Please choose between 1 and 3: ";
+            }
+        } while (option < 1 || option > 3);
+
+        if (option == 2) {
+            clearScreen();
+            break;
+        }
+        else if (option == 3) {
+            cout << "Thank you for using our program!" << endl;
+            exit(0);
+        }
     }
-    else if (isParallelogram) {
-        std::cout << "It is a parallelogram." << std::endl;
+}
+
+lineType getLineFromUser(const string& lineNumber) {
+    double a, b, c;
+    cout << "\nEnter coefficients for " << lineNumber << " (ax + by = c):" << endl;
+
+    do {
+        cout << "Enter a: ";
+        a = getValidIntegerInput();
+
+        cout << "Enter b: ";
+        b = getValidIntegerInput();
+
+        if (abs(a) < EPSILON && abs(b) < EPSILON) {
+            cout << "Both a and b cannot be zero. Please enter valid coefficients." << endl;
+            continue;
+        }
+
+        cout << "Enter c: ";
+        c = getValidIntegerInput();
+        break;
+
+    } while (true);
+
+    return lineType(a, b, c);
+}
+
+void compareCustomLinesMenu() {
+    while (true) {
+        displayHeader("Compare Custom Lines");
+
+        lineType line1 = getLineFromUser("first line");
+        lineType line2 = getLineFromUser("second line");
+
+        displayHeader("Line Comparison Results");
+        checkLines(line1, line2);
+
+        cout << "\nWhat would you like to do?" << endl;
+        cout << "1. Compare more lines" << endl;
+        cout << "2. Return to main menu" << endl;
+        cout << "3. Exit program" << endl;
+        cout << "\nChoice: ";
+
+        int option;
+        do {
+            option = getValidIntegerInput();
+            if (option < 1 || option > 3) {
+                cout << "Invalid choice! Please choose between 1 and 3: ";
+            }
+        } while (option < 1 || option > 3);
+
+        if (option == 2) {
+            clearScreen();
+            break;
+        }
+        else if (option == 3) {
+            cout << "Thank you for using our program!" << endl;
+            exit(0);
+        }
     }
-    else if (isTrapezoid) {
-        std::cout << "It is a trapezoid." << std::endl;
+}
+
+void createCustomShapeMenu() {
+    while (true) {
+        displayHeader("Create Custom Shape");
+
+        vector<lineType> lines;
+        cout << "Enter coefficients for 4 lines to create a quadrilateral." << endl;
+
+        for (int i = 1; i <= 4; i++) {
+            lines.push_back(getLineFromUser("line " + to_string(i)));
+        }
+
+        displayHeader("Shape Analysis Results");
+        showShape(lines);
+
+        cout << "\nWhat would you like to do?" << endl;
+        cout << "1. Create another shape" << endl;
+        cout << "2. Return to main menu" << endl;
+        cout << "3. Exit program" << endl;
+        cout << "\nChoice: ";
+
+        int option;
+        do {
+            option = getValidIntegerInput();
+            if (option < 1 || option > 3) {
+                cout << "Invalid choice! Please choose between 1 and 3: ";
+            }
+        } while (option < 1 || option > 3);
+
+        if (option == 2) {
+            clearScreen();
+            break;
+        }
+        else if (option == 3) {
+            cout << "Thank you for using our program!" << endl;
+            exit(0);
+        }
     }
-    else {
-        std::cout << "It is an irregular quadrilateral." << std::endl;
+}
+
+void checkQuadrilateral(const vector<lineType>& lines) {
+    if (lines.size() != 4) {
+        cout << "Hey, we need exactly 4 lines to make a quadrilateral!" << endl;
+        return;
     }
+
+    // Get all possible intersections first
+    vector<Point> allIntersections;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        for (size_t j = i + 1; j < lines.size(); ++j) {
+            Point p = lines[i].findIntersectionPoint(lines[j]);
+            if (!isinf(p.x) && !isinf(p.y)) {
+                allIntersections.push_back(p);
+            }
+        }
+    }
+
+    // Reorder points to form the quadrilateral
+    vector<Point> orderedPoints;
+    if (allIntersections.size() >= 4) {
+        // Find the topmost point to start
+        int topmost = 0;
+        for (size_t i = 1; i < allIntersections.size(); i++) {
+            if (allIntersections[i].y > allIntersections[topmost].y) {
+                topmost = i;
+            }
+        }
+        orderedPoints.push_back(allIntersections[topmost]);
+
+        // Find remaining points based on proximity
+        vector<bool> used(allIntersections.size(), false);
+        used[topmost] = true;
+
+        // Find remaining three points by distance
+        for (int i = 0; i < 3; i++) {
+            double minDist = numeric_limits<double>::max();
+            int nextPoint = -1;
+
+            for (size_t j = 0; j < allIntersections.size(); j++) {
+                if (!used[j]) {
+                    double dist = calculateDistance(orderedPoints.back(), allIntersections[j]);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nextPoint = j;
+                    }
+                }
+            }
+
+            if (nextPoint != -1) {
+                orderedPoints.push_back(allIntersections[nextPoint]);
+                used[nextPoint] = true;
+            }
+        }
+    }
+
+    // Calculate side lengths using ordered points
+    vector<double> sideLengths;
+    if (orderedPoints.size() == 4) {
+        sideLengths.push_back(calculateDistance(orderedPoints[0], orderedPoints[1]));
+        sideLengths.push_back(calculateDistance(orderedPoints[1], orderedPoints[2]));
+        sideLengths.push_back(calculateDistance(orderedPoints[2], orderedPoints[3]));
+        sideLengths.push_back(calculateDistance(orderedPoints[3], orderedPoints[0]));
+    }
+
+    // Store original order for display
+    vector<double> originalLengths = sideLengths;
+    sort(sideLengths.begin(), sideLengths.end());
+
+    // Reorganize lines so parallel pairs are grouped correctly
+    vector<lineType> reorderedLines = lines;
+    if (!lines[0].isParallel(lines[2])) {
+        swap(reorderedLines[1], reorderedLines[2]);
+    }
+
+    bool equalSides = (sideLengths.size() == 4) &&
+        (abs(sideLengths[0] - sideLengths[3]) < EPSILON);
+
+    bool equalOpposites = (sideLengths.size() == 4) &&
+        (abs(sideLengths[0] - sideLengths[1]) < EPSILON) &&
+        (abs(sideLengths[2] - sideLengths[3]) < EPSILON);
+
+    bool isParallelogram = reorderedLines[0].isParallel(reorderedLines[2]) &&
+        reorderedLines[1].isParallel(reorderedLines[3]);
+
+    bool isRectangle = reorderedLines[0].isPerpendicular(reorderedLines[1]) &&
+        reorderedLines[1].isPerpendicular(reorderedLines[2]) &&
+        reorderedLines[2].isPerpendicular(reorderedLines[3]) &&
+        reorderedLines[3].isPerpendicular(reorderedLines[0]) &&
+        isParallelogram &&
+        equalOpposites;
+
+    bool isRhombus = reorderedLines[0].isParallel(reorderedLines[2]) &&
+        reorderedLines[1].isParallel(reorderedLines[3]) &&
+        equalSides;
+
+    bool isSquare = reorderedLines[0].isPerpendicular(reorderedLines[1]) &&
+        reorderedLines[1].isPerpendicular(reorderedLines[2]) &&
+        reorderedLines[2].isPerpendicular(reorderedLines[3]) &&
+        reorderedLines[3].isPerpendicular(reorderedLines[0]) &&
+        isParallelogram &&
+        equalSides;
+
+    bool isTrapezoid = (reorderedLines[0].isParallel(reorderedLines[2]) &&
+        !reorderedLines[1].isParallel(reorderedLines[3])) ||
+        (reorderedLines[1].isParallel(reorderedLines[3]) &&
+            !reorderedLines[0].isParallel(reorderedLines[2]));
+
+    // Output results
+    cout << "\nHere is the information about the shape you chose:" << endl;
+    if (sideLengths.size() == 4) {
+        cout << "The sides lengths are: ";
+        for (double length : originalLengths) {
+            cout << fixed << setprecision(3) << length << " ";
+        }
+        cout << endl;
+    }
+
+    if (isSquare) cout << "The shape you have chosen is a square! (all sides equal and all angles 90 degree)" << endl;
+    else if (isRectangle) cout << "The shape you have chosen is a rectangle! (opposite sides equal and all angles 90 degree)" << endl;
+    else if (isRhombus) cout << "The shape you have chosen is a rhombus! (all sides equal but angles aren't 90 degree)" << endl;
+    else if (isParallelogram) cout << "The shape you have chosen is a parallelogram! (opposite sides are equal and but angles aren't 90 degree)" << endl;
+    else if (isTrapezoid) cout << "The shape you have chosen is a trapezoid! (there is only one pair of parallel sides)" << endl;
+    else cout << "Looks like the shape you have chosen, is an irregular quadrilateral!" << endl;
 }
